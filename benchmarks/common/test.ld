@@ -43,6 +43,7 @@ SECTIONS
   .sbss : {
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
     *(.scommon)
+    BYTE(0)
   }
   .bss : { *(.bss) }
 
