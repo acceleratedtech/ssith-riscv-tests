@@ -94,6 +94,10 @@ void query_uart16550(uintptr_t fdt)
   cb.extra = &scan;
 
   fdt_scan(fdt, &cb);
+  // Temporarily hardcode the UART address if the device tree does not have one
+  if (!uart16550) {
+    uart16550 = (void*)(uintptr_t)0x62300000;
+  }
 //  if (scan.speed && scan.freq) {
 //    printf("\r\n");
 //    printf("UART 16550 configured with options: baud = %d | freq = %d\r\n",
