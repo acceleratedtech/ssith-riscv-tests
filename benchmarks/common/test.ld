@@ -20,14 +20,14 @@ ENTRY(_start)
 
 SECTIONS
 {
-
+  . = 0xBFFFF000;
+  .tohost : { *(.tohost); . = ALIGN(0x1000); } = 0xaa
+    
   /* text: test code section */
   . = 0xC0000000;
   .text.init : { *(.text.init) }
 
   . = ALIGN(0x1000);
-  .tohost : { *(.tohost) }
-
   .text : { *(.text) }
 
   /* data segment */
