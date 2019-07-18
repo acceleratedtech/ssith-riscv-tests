@@ -91,7 +91,20 @@ extern int _write(int file, char *ptr, int len)
 
 void printstr(const char* s)
 {
-  syscall(SYS_write, 1, (uintptr_t)s, strlen(s));
+  if (uart16550)
+  {
+    int count;
+    count = strlen(s);
+    while (count > 0) {
+      uart16550_putchar(*s);
+      ++s;
+      --count;
+    }
+  }
+  else
+  {
+    syscall(SYS_write, 1, (uintptr_t)s, strlen(s));
+  }
 }
 
 void __attribute__((weak)) thread_entry(int cid, int nc)
