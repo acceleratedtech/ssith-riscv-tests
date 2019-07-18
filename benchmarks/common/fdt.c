@@ -14,19 +14,6 @@ static inline uint32_t bswap(uint32_t x)
   return z;
 }
 
-static inline int isstring(char c)
-{
-  if (c >= 'A' && c <= 'Z')
-    return 1;
-  if (c >= 'a' && c <= 'z')
-    return 1;
-  if (c >= '0' && c <= '9')
-    return 1;
-  if (c == '\0' || c == ' ' || c == ',' || c == '-')
-    return 1;
-  return 0;
-}
-
 static uint32_t *fdt_scan_helper(
   uint32_t *lex,
   const char *strings,
