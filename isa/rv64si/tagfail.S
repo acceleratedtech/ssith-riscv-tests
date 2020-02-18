@@ -55,7 +55,7 @@ RVTEST_CODE_BEGIN
   TEST_CASE( 7, a0, 0xbad1dea, li a0, 0x0001dea; csrrc a0, sscratch, a0);
   TEST_CASE( 8, a0, 0xbad0000, li a0, 0x000beef; csrrs a0, sscratch, a0);
   TEST_CASE( 9, a0, 0xbadbeef, csrr a0, sscratch);
-	
+
 	la a0, fsw_data
 	li a1, 22
   	sw a1, 0(a0)
@@ -63,29 +63,28 @@ RVTEST_CODE_BEGIN
 	la a1, sized_pointer_tag
 	lw a2, 0(a1)
 	sw a2, 0(a0)
-	
-	la sp, fsw_data
-	li a1, 22
-  	sw a1, 0(sp)
-	
-     .word (0x00007003 | (( 2) << 15) | (( 1) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | (( 2) << 7)) 
+
+	la sp, sized_pointer_tag
+  	lw a1, 0(sp)
+        la t1, sized_pointer_data
+     .word (0x00007003 | (( 2) << 15) | (( 1) << 7))
+     .word (0x00007003 | (( 2) << 15) | (( 2) << 7))
 	## avoid bad bypass value
 	sw sp, 0(t1)
 	sw sp, 0(t1)
-     .word (0x00007003 | (( 2) << 15) | (( 3) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | (( 4) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | (( 5) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | (( 6) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | (( 7) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | (( 8) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | (( 9) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | ((10) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | ((11) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | ((12) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | ((13) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | ((14) << 7)) 
-     .word (0x00007003 | (( 2) << 15) | ((15) << 7)) 
+     .word (0x00007003 | (( 2) << 15) | (( 3) << 7))
+     .word (0x00007003 | (( 2) << 15) | (( 4) << 7))
+     .word (0x00007003 | (( 2) << 15) | (( 5) << 7))
+     .word (0x00007003 | (( 2) << 15) | (( 6) << 7))
+     .word (0x00007003 | (( 2) << 15) | (( 7) << 7))
+     .word (0x00007003 | (( 2) << 15) | (( 8) << 7))
+     .word (0x00007003 | (( 2) << 15) | (( 9) << 7))
+     .word (0x00007003 | (( 2) << 15) | ((10) << 7))
+     .word (0x00007003 | (( 2) << 15) | ((11) << 7))
+     .word (0x00007003 | (( 2) << 15) | ((12) << 7))
+     .word (0x00007003 | (( 2) << 15) | ((13) << 7))
+     .word (0x00007003 | (( 2) << 15) | ((14) << 7))
+     .word (0x00007003 | (( 2) << 15) | ((15) << 7))
 
      li    x1, 1
      csrw 0x802, x1
@@ -93,18 +92,28 @@ RVTEST_CODE_BEGIN
 
      la x3, sized_pointer_tag
      lw x4, 0(x3)
-     sw x4, 0(sp)
      la x1, sized_pointer_data
-     # assign x1's tag from 0(sp)
-     .word (0x00007003 | (( 2) << 15) | (( 1) << 7)) 
-	## avoid bad bypass value
-	sw sp, 0(t1)
-	sw sp, 0(t1)
+     sw x4, 0(x1)
+     la x2, sized_pointer_data2
+     # assign x1's tag from 0(x3)
+     .word (0x00007003 | (( 3) << 15) | (( 1) << 7))
+     ## avoid bad bypass value
+     or x0, x0, x0
+     or x0, x0, x0
      lw x2, 0(x1)
      lw x2, 8(x1)
-	
-     # this load should trap
-     lw x2, 32(x1)
+     .word (0x00007023 | (( 3) << 15) | (( 1) << 20))
+     .word (0x00007003 | (( 3) << 15) | (( 1) << 7))
+     or x0, x0, x0
+     or x0, x0, x0
+
+     ## this load should trap
+     #lw x2, 32(x1)
+     ## verify pointer add is tracked
+     addi x1, x1, 16
+     lw x2, 16(x1)
+
+     j fail
 
   TEST_PASSFAIL
 
@@ -114,15 +123,6 @@ finish:
   .align 2
   .global stvec_handler
 stvec_handler:
-  # Trapping on tests 10-12 is good news.
-  # Note that since the test didn't complete, TESTNUM is smaller by 1.
-  li t0, 9
-  bltu TESTNUM, t0, 1f
-  li t0, 11
-  bleu TESTNUM, t0, privileged
-1:
-
-  # catch RVTEST_PASS and kick it up to M-mode
   csrr t0, scause
   csrr t0, scause
   li t1, TAG_LOAD_FAULT
@@ -134,22 +134,26 @@ stvec_handler:
 privileged:
   # Make sure scause indicates a lack of privilege.
   csrr t0, scause
-  li t1, CAUSE_ILLEGAL_INSTRUCTION
+  li t1, 16
   bne t0, t1, fail
   # Return to user mode, but skip the trapping instruction.
   csrr t0, sepc
   addi t0, t0, 4
   csrw sepc, t0
   sret
-	
+
 RVTEST_CODE_END
 
   .data
 RVTEST_DATA_BEGIN
 
-fsw_data: .word 1
+padding: .word 1
+fsw_data: .word 17
 sized_pointer_scratch:	 .word 0
-sized_pointer_tag:	.word 0xc0080010
+sized_pointer_tagbefore: .word 0xbef00000
+sized_pointer_tag:	.word (0xc0000000 | (16 << 15))
+sized_pointer_tagafter:	.word 0xaf700000
 sized_pointer_data:	.word 0x17172242
+sized_pointer_data2:	.word 0xbad0beef
 
 RVTEST_DATA_END

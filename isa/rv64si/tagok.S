@@ -102,9 +102,13 @@ RVTEST_CODE_BEGIN
      or x0, x0, x0
      lw x2, 0(x1)
      lw x2, 8(x1)
+     .word (0x00007023 | (( 3) << 15) | (( 1) << 20))
+     .word (0x00007003 | (( 3) << 15) | (( 1) << 7))
 
      ## this load should trap
      # lw x2, 32(x1)
+
+     j finish
 
   TEST_PASSFAIL
 
@@ -114,19 +118,10 @@ finish:
   .align 2
   .global stvec_handler
 stvec_handler:
-  # Trapping on tests 10-12 is good news.
-  # Note that since the test didn't complete, TESTNUM is smaller by 1.
-  li t0, 9
-  bltu TESTNUM, t0, 1f
-  li t0, 11
-  bleu TESTNUM, t0, privileged
-1:
-
-  # catch RVTEST_PASS and kick it up to M-mode
   csrr t0, scause
   csrr t0, scause
   li t1, TAG_LOAD_FAULT
-  beq t0, t1, finish
+  beq t0, t1, fail
   li t1, CAUSE_USER_ECALL
   bne t0, t1, fail
   RVTEST_PASS
@@ -151,7 +146,7 @@ padding: .word 1
 fsw_data: .word 17
 sized_pointer_scratch:	 .word 0
 sized_pointer_tagbefore: .word 0xbef00000
-sized_pointer_tag:	.word 0xcafe0123
+sized_pointer_tag:	.word (0xc0000000 | (16 << 15))
 sized_pointer_tagafter:	.word 0xaf700000
 sized_pointer_data:	.word 0x17172242
 sized_pointer_data2:	.word 0xbad0beef
